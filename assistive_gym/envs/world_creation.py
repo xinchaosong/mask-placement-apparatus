@@ -295,14 +295,18 @@ class WorldCreation:
             indices_new = [20, 22]
             positions = [position, -position]
         elif self.robot_type == 'jaco':
-            indices_new = [9, 11, 13]
-            positions = [position, position, position]
+            # indices_new = [9, 11, 13]
+            indices_new = [8,]
+            # positions = [position, position, position]
+            positions = [position, ]
+
         if indices is None:
             indices = indices_new
 
         if set_instantly:
             for i, j in enumerate(indices):
                 p.resetJointState(robot, jointIndex=j, targetValue=positions[i], targetVelocity=0, physicsClientId=self.id)
+
         p.setJointMotorControlArray(robot, jointIndices=indices, controlMode=p.POSITION_CONTROL, targetPositions=positions, positionGains=np.array([0.05]*len(indices)), forces=[500]*len(indices), physicsClientId=self.id)
 
     def init_tool(self, robot, mesh_scale=[1]*3, pos_offset=[0]*3, orient_offset=[0, 0, 0, 1], left=True, maximal=False, alpha=1.0):

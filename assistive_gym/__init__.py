@@ -343,3 +343,25 @@ register(
     max_episode_steps=200,
 )
 
+register(
+    id='MaskPlacingPR2-v0',
+    entry_point='assistive_gym.envs:MaskPlacingPR2Env',
+    max_episode_steps=200,
+)
+register(
+    id='MaskPlacingJaco-v0',
+    entry_point='assistive_gym.envs:MaskPlacingJacoEnv',
+    max_episode_steps=200,
+)
+
+register(
+    id='MaskPlacingPR2Human-v0',
+    entry_point='assistive_gym.envs:MaskPlacingPR2HumanEnv',
+    max_episode_steps=200,
+)
+
+register(
+    id='MaskPlacingJacoHuman-v0',
+    entry_point='assistive_gym.envs:MaskPlacingJacoHumanEnv',
+    max_episode_steps=200,
+)
