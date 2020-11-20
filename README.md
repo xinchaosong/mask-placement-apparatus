@@ -2,7 +2,9 @@
 
 ### EECE 5552 Assistive Robotics Project 
 
-- Robot arm & end effector: [/assistive_gym/envs/assets/jaco/](https://github.com/xinchaosong/mask-placement-apparatus/tree/main/assistive_gym/envs)
+- End effector models: [/assistive_gym/envs/assets/jaco/meshes/mask_effector](https://github.com/xinchaosong/mask-placement-apparatus/tree/main/assistive_gym/envs/assets/jaco/meshes/mask_effector)
+
+- Robot arm URDF: [/assistive_gym/envs/assets/jaco/j2s7s300_gym.urdf](https://github.com/xinchaosong/mask-placement-apparatus/blob/main/assistive_gym/envs/assets/jaco/j2s7s300_gym.urdf)
 
 - Env: [/assistive_gym/envs/mask_placing.py](https://github.com/xinchaosong/mask-placement-apparatus/tree/main/assistive_gym/envs/mask_placing.py)
 
