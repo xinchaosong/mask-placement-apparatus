@@ -112,6 +112,7 @@ class MaskPlacingEnv(AssistiveEnv):
         target_pos, target_orient = p.multiplyTransforms(head_pos, head_orient, self.mouth_pos, [0, 0, 0, 1],
                                                          physicsClientId=self.id)
         self.target_pos = np.array(target_pos)
+        self.target_orient = np.array(target_orient)
         sphere_collision = -1
         sphere_visual = p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.01, rgbaColor=[0, 1, 0, 1],
                                             physicsClientId=self.id)
