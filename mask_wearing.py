@@ -6,7 +6,7 @@ import utils
 from time import sleep
 
 
-def raw_sim_loop(p, env):
+def raw_ctrl_loop(p, env):
     while True:
         p.stepSimulation()
         joint_poses = p.calculateInverseKinematics(env.robot, 8, env.target_pos, env.target_orient)
@@ -21,7 +21,7 @@ def raw_sim_loop(p, env):
         sleep(0.05)
 
 
-def assisted_sim_loop(p, env):
+def assisted_ctrl_loop(p, env):
     while True:
         env.render()
         position = env.target_pos
@@ -45,12 +45,23 @@ if __name__ == "__main__":
     env.render()
     observation = env.reset()
     utils.print_joints(env, p)
-    image_data = p.getCameraImage(width=600, height=800)
-    img = Image.fromarray(image_data[2], 'RGB')
+    p.addUserDebugLine(lineFromXYZ=[0.0, 0.0, 0.0], lineToXYZ=[0.0, 0.0, 2.0], lineColorRGB=[255,0,0])
+
+    # Camera setup
+    camera_pos = [0.25, -0.5, 0.75]
+    target_pos = [0.0, 0.0, 1.25]
+    up_vector = [0.0, 0.0, 1.0]
+    viewMatrix = p.computeViewMatrix(cameraEyePosition=camera_pos,
+                                     cameraTargetPosition=target_pos,
+                                     cameraUpVector=up_vector)
+
+    image_data = p.getCameraImage(height=480, width=640, viewMatrix=viewMatrix)
+    img = Image.fromarray(image_data[2], 'RGBA')
     img.save('my.png')
     img.show()
+
     print(env.target_pos)
     print(p.getEulerFromQuaternion(env.target_orient))
     numJoints = p.getNumJoints(env.robot)
-    raw_sim_loop(p, env)
-    # assisted_sim_loop(p, env)
+    # raw_ctrl_loop(p, env)
+    assisted_ctrl_loop(p, env)
