@@ -46,6 +46,7 @@ if __name__ == "__main__":
     observation = env.reset()
     utils.print_joints(env, p)
     p.addUserDebugLine(lineFromXYZ=[0.0, 0.0, 0.0], lineToXYZ=[0.0, 0.0, 2.0], lineColorRGB=[255,0,0])
+    p.addUserDebugLine(lineFromXYZ=[0.25, -0.5, 0.0], lineToXYZ=[0.25, -0.5, 0.75], lineColorRGB=[0,0,255])
 
     # Camera setup
     camera_pos = [0.25, -0.5, 0.75]
@@ -54,8 +55,20 @@ if __name__ == "__main__":
     viewMatrix = p.computeViewMatrix(cameraEyePosition=camera_pos,
                                      cameraTargetPosition=target_pos,
                                      cameraUpVector=up_vector)
+    width = 640
+    height = 480
+    fov = 60
+    aspect = width / height
+    near = 0.02
+    far = 1
+    projectionMatrix = p.computeProjectionMatrixFOV(fov, aspect, near, far)
 
-    image_data = p.getCameraImage(height=480, width=640, viewMatrix=viewMatrix)
+    image_data = p.getCameraImage(height=height,
+                                width=width,
+                                viewMatrix=viewMatrix,
+                                projectionMatrix=projectionMatrix,
+                                shadow=True,
+                                renderer=p.ER_BULLET_HARDWARE_OPENGL)
     img = Image.fromarray(image_data[2], 'RGBA')
     img.save('my.png')
     img.show()
