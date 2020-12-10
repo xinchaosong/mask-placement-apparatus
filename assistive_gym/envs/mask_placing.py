@@ -22,11 +22,14 @@ class MaskPlacingEnv(AssistiveEnv):
         for c in p.getContactPoints(bodyA=self.robot, bodyB=self.human, physicsClientId=self.id):
             robot_force_on_human += c[9]
 
-        # Get the Euclidean distance between the robot's end effector and the person's mouth
-        gripper_pos = np.array(
-            p.getLinkState(self.robot, 54 if self.robot_type == 'pr2' else 8, computeForwardKinematics=True,
-                           physicsClientId=self.id)[0])
+        # Get the Euclidean distance and orientation between the robot's end effector and the person's mouth
+        linkState = p.getLinkState(self.robot, 54 if self.robot_type == 'pr2' else 8, computeForwardKinematics=True, physicsClientId=self.id)
+        gripper_pos = np.array(linkState[0])
+        gripper_orient = np.array(p.getEulerFromQuaternion(linkState[1]))
+
+        target_orient = np.array(p.getEulerFromQuaternion(self.target_orient.tolist()))
         reward_distance_mouth = -np.linalg.norm(gripper_pos - self.target_pos)
+        reward_orient_mouth = -np.linalg.norm(gripper_orient - target_orient)
         # Get end effector velocity
         end_effector_velocity = np.linalg.norm(
             p.getLinkState(self.robot, 76 if self.robot_type == 'pr2' else 8, computeForwardKinematics=True,
@@ -37,7 +40,7 @@ class MaskPlacingEnv(AssistiveEnv):
                                                    total_force_on_human=robot_force_on_human)
         # Get observations and reward
         obs = self._get_obs([], [robot_force_on_human])
-        reward = self.config('distance_weight') * reward_distance_mouth + preferences_score
+        reward = self.config('distance_weight') * (reward_distance_mouth+reward_orient_mouth) + preferences_score
         info = {'total_force_on_human': robot_force_on_human,
                 'task_success': int(reward_distance_mouth <= self.config('task_success_threshold')),
                 'action_robot_len': self.action_robot_len, 'action_human_len': self.action_human_len,
@@ -85,6 +88,9 @@ class MaskPlacingEnv(AssistiveEnv):
             p.resetBasePositionAndOrientation(self.robot, np.array(wheelchair_pos) + np.array([-0.35, -0.3, 0.3]),
                                               p.getQuaternionFromEuler([0, 0, 0], physicsClientId=self.id),
                                               physicsClientId=self.id)
+            # p.resetBasePositionAndOrientation(self.robot, np.array(wheelchair_pos) + np.array([-0.35, -0.3, 0.7]),
+            #                                   p.getQuaternionFromEuler([0, 0, 0], physicsClientId=self.id),
+            #                                   physicsClientId=self.id)
 
         # Configure the person
         joints_positions = [(6, np.deg2rad(-90)), (16, np.deg2rad(-90)), (28, np.deg2rad(-90)), (31, np.deg2rad(80)),

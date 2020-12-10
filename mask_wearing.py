@@ -13,21 +13,34 @@ def raw_ctrl_loop(p, env, target_pos, target_orient):
     while True:
         p.stepSimulation()
         joint_poses = p.calculateInverseKinematics(env.robot, 8, goal_pos, goal_orient)
+        target_joint_positions = joint_poses[:7]
+
+        joint_positions, joint_velocities, joint_torques = env.get_motor_joint_states(env.robot)
+        joint_positions = np.array(joint_positions)[:7]
+
+        distance = np.linalg.norm(target_joint_positions - joint_positions)
+        force_applied = distance
+
         p.setJointMotorControlArray(bodyIndex=env.robot,
                                     jointIndices=list(range(1, 8)),
                                     controlMode=p.POSITION_CONTROL,
                                     targetPositions=joint_poses,
                                     targetVelocities=np.zeros(len(joint_poses)),
-                                    forces=500 * np.ones(len(joint_poses)),
+                                    forces=force_applied * np.ones(len(joint_poses)),
                                     positionGains=0.03 * np.ones(len(joint_poses)),
                                     velocityGains=np.ones(len(joint_poses)))
         linkPos_w, linkOrn_w, _, _, _, _ = p.getLinkState(env.robot, linkIndex=8)
         linkOrnEuler_w = p.getEulerFromQuaternion(linkOrn_w)
-        print(f'current: {linkPos_w}, {linkOrnEuler_w} | goal: {goal_pos}, {goal_orient_Euler}')
+        # print(f'current: {linkPos_w}, {linkOrnEuler_w} | goal: {goal_pos}, {goal_orient_Euler}')
         qKey = ord('q')
+        rKey = ord('r')
         keys = p.getKeyboardEvents()
         if qKey in keys and keys[qKey]&p.KEY_WAS_TRIGGERED:
             break;
+        elif rKey in keys and keys[rKey]&p.KEY_WAS_TRIGGERED:
+            env.reset()
+        # utils.print_joints(env, p)
+        print(p.getJointState(env.robot, 8)[2][0])
         sleep(0.05)
     p.disconnect()
 
@@ -48,17 +61,24 @@ def assisted_ctrl_loop(p, env, target_pos, target_orient):
         joint_positions = np.array(joint_positions)[:7]
 
         # Set joint action to be the error between current and target joint positions
-        kp = 10.0
+        kp = 3.0
         err = target_joint_positions - joint_positions
         u = kp*err
         observation, reward, done, info = env.step(u)
         linkPos_w, linkOrn_w, _, _, _, _ = p.getLinkState(env.robot, linkIndex=8)
         linkOrnEuler_w = p.getEulerFromQuaternion(linkOrn_w)
-        print(f'current: {linkPos_w}, {linkOrnEuler_w} | goal: {goal_pos}, {goal_orient_Euler}')
+        # print(f'current: {linkPos_w}, {linkOrnEuler_w} | goal: {goal_pos}, {goal_orient_Euler}')
         qKey = ord('q')
+        rKey = ord('r')
         keys = p.getKeyboardEvents()
         if qKey in keys and keys[qKey]&p.KEY_WAS_TRIGGERED:
             break;
+        elif rKey in keys and keys[rKey]&p.KEY_WAS_TRIGGERED:
+            env.reset()
+            goal_pos = env.target_pos
+            goal_orient = env.target_orient
+        utils.print_joints(env, p)
+        # print(p.getJointState(env.robot, 8)[2][0])
     p.disconnect()
 
 def getHeadPoseFromCamera(p):
@@ -89,23 +109,99 @@ def getHeadPoseFromCamera(p):
     target_orient = p.getEulerFromQuaternion(env.target_orient)
     return env.target_pos, target_orient, True
 
+# States
+FIND_POSE = 0
+MASK_ON = 1
+MASK_OFF = 2
+DONE = 3
 
-if __name__ == "__main__":
+def run():
     env = gym.make("MaskPlacingJaco-v0")
     env.render()
     observation = env.reset()
     utils.print_joints(env, p)
-    p.addUserDebugLine(lineFromXYZ=[0.0, 0.0, 0.0], lineToXYZ=[0.0, 0.0, 2.0], lineColorRGB=[255,0,0])
-    p.addUserDebugLine(lineFromXYZ=[0.25, -0.5, 0.0], lineToXYZ=[0.25, -0.5, 0.75], lineColorRGB=[0,0,255])
 
-    ready = False
+    qKey = ord('q')
+    rKey = ord('r')
+    fKey = ord('f')
+    bKey = ord('b')
 
-    while not ready:
-        target_pos, target_orient, ready = getHeadPoseFromCamera(p)
+    # FSM state variable
+    currState = FIND_POSE
 
-    print(target_pos)
-    print(target_orient)
-    print(target_orient)
-    numJoints = p.getNumJoints(env.robot)
-    # raw_ctrl_loop(p, env, target_pos, p.getQuaternionFromEuler(target_orient))
-    assisted_ctrl_loop(p, env, target_pos, p.getQuaternionFromEuler(target_orient))
+    # list of action taken
+    actions_taken = []
+
+    target_pos = env.target_pos
+    target_orient = env.target_orient
+
+    # Main loop
+    while True:
+        if currState == FIND_POSE:
+            currState = MASK_ON
+        elif currState == MASK_ON:
+            env.render()
+            # IK to get new joint positions (angles) for the robot
+            target_joint_positions = p.calculateInverseKinematics(env.robot, 8, target_pos, target_orient)
+            target_joint_positions = target_joint_positions[:7]
+            # Get the joint positions (angles) of the robot arm
+            joint_positions, joint_velocities, joint_torques = env.get_motor_joint_states(env.robot)
+            joint_positions = np.array(joint_positions)[:7]
+            # Set joint action to be the error between current and target joint positions
+            kp = 3.0
+            err = target_joint_positions - joint_positions
+            u = kp*err
+            observation, reward, done, info = env.step(u)
+            actions_taken.append(u)
+            # p.stepSimulation()
+            # joint_poses = p.calculateInverseKinematics(env.robot, 8, target_pos, target_orient)
+            # target_joint_positions = joint_poses[:7]
+
+            # joint_positions, joint_velocities, joint_torques = env.get_motor_joint_states(env.robot)
+            # joint_positions = np.array(joint_positions)[:7]
+
+            # distance = np.linalg.norm(target_joint_positions - joint_positions)
+            # force_applied = distance*0.25
+
+            # p.setJointMotorControlArray(bodyIndex=env.robot,
+            #                             jointIndices=list(range(1, 8)),
+            #                             controlMode=p.POSITION_CONTROL,
+            #                             targetPositions=joint_poses,
+            #                             targetVelocities=np.zeros(len(joint_poses)),
+            #                             forces=force_applied * np.ones(len(joint_poses)),
+            #                             positionGains=0.03 * np.ones(len(joint_poses)),
+            #                             velocityGains=np.ones(len(joint_poses)))
+            # sleep(0.05)
+
+        # elif currState == MASK_OFF:
+        #     u = actions_taken.pop()
+        #     observation, reward, done, info = env.step(u)
+        #     if len(actions_taken) == 0:
+        #         currState = DONE
+        else:
+            pass
+        
+        # State transition logic
+        keys = p.getKeyboardEvents()
+        if qKey in keys and keys[qKey]&p.KEY_WAS_TRIGGERED: # Quit
+            break;
+        elif fKey in keys and keys[fKey]&p.KEY_WAS_TRIGGERED: # Forward
+            currState = MASK_ON
+            target_pos = env.target_pos
+            target_orient = env.target_orient
+        elif bKey in keys and keys[bKey]&p.KEY_WAS_TRIGGERED: # Backward
+            # currState = MASK_OFF
+            target_pos = [1, 1, 0]
+            target_orient = [-1.75, 0, -1.1, -0.5]
+
+        elif rKey in keys and keys[rKey]&p.KEY_WAS_TRIGGERED: # Reset Env
+            env.reset()
+            goal_pos = env.target_pos
+            goal_orient = env.target_orient
+            actions_taken = []
+            currState = FIND_POSE
+    
+    p.disconnect()
+
+if __name__ == "__main__":
+    run()
