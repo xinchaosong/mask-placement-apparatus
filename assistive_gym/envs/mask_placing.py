@@ -76,8 +76,8 @@ class MaskPlacingEnv(AssistiveEnv):
     def reset(self):
         # Create the human, wheelchair, and robot
         self.human, self.wheelchair, self.robot, self.robot_lower_limits, self.robot_upper_limits, self.human_lower_limits, self.human_upper_limits, self.robot_right_arm_joint_indices, self.robot_left_arm_joint_indices, self.gender = self.world_creation.create_new_world(
-            furniture_type='wheelchair', static_human_base=True, human_impairment='random', print_joints=False,
-            gender='random')
+            furniture_type='wheelchair', static_human_base=True, human_impairment='none', print_joints=False,
+            gender='male')
         self.robot_lower_limits = self.robot_lower_limits[self.robot_right_arm_joint_indices]
         self.robot_upper_limits = self.robot_upper_limits[self.robot_right_arm_joint_indices]
         self.reset_robot_joints()
@@ -96,9 +96,12 @@ class MaskPlacingEnv(AssistiveEnv):
         joints_positions = [(6, np.deg2rad(-90)), (16, np.deg2rad(-90)), (28, np.deg2rad(-90)), (31, np.deg2rad(80)),
                             (35, np.deg2rad(-90)), (38, np.deg2rad(80))]
         # Randomize head orientation
-        joints_positions += [(21, self.np_random.uniform(np.deg2rad(-30), np.deg2rad(30))),
-                             (22, self.np_random.uniform(np.deg2rad(-30), np.deg2rad(30))),
-                             (23, self.np_random.uniform(np.deg2rad(-30), np.deg2rad(30)))]
+        # joints_positions += [(21, self.np_random.uniform(np.deg2rad(-30), np.deg2rad(30))),
+        #                      (22, self.np_random.uniform(np.deg2rad(-30), np.deg2rad(30))),
+        #                      (23, self.np_random.uniform(np.deg2rad(-30), np.deg2rad(30)))]
+        joints_positions += [(21, np.deg2rad(0)),
+                             (22, np.deg2rad(0)),
+                             (23, np.deg2rad(0))]
         self.human_controllable_joint_indices = [20, 21, 22, 23]
         self.world_creation.setup_human_joints(self.human, joints_positions, self.human_controllable_joint_indices if (
                 self.human_control or self.world_creation.human_impairment == 'tremor') else [],

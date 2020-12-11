@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 import utils
 from time import sleep
-
+import time
 
 def raw_ctrl_loop(p, env, target_pos, target_orient):
     goal_pos = target_pos
@@ -115,6 +115,46 @@ MASK_ON = 1
 MASK_OFF = 2
 DONE = 3
 
+class PID:
+    def __init__(self, kp=3.0, ki=0.0001, kd=0.0001, q_dim=1, current_time=None):
+        self.kp = kp
+        self.ki = ki
+        self.kd = kd
+        self.current_time = current_time if current_time is not None else time.time()
+        self.last_time = self.current_time
+        self.q_dim = q_dim
+        self.initialize()
+
+    def initialize(self, current_time=None):
+        self.PTerm = np.zeros(self.q_dim).tolist()
+        self.ITerm = np.zeros(self.q_dim).tolist()
+        self.DTerm = np.zeros(self.q_dim).tolist()
+        self.last_error = np.zeros(self.q_dim).tolist()
+        self.int_error = np.zeros(self.q_dim).tolist()
+        self.windup_guard = 20.0
+
+    def update(self, error, current_time=None):
+        self.current_time = current_time if current_time is not None else time.time()
+        delta_time = self.current_time - self.last_time
+        delta_error = error - self.last_error
+
+        self.PTerm = self.kp * error
+        self.ITerm += error * delta_time
+        for i in range(self.q_dim):
+            if (self.ITerm[i] < -self.windup_guard):
+                self.ITerm[i] = -self.windup_guard
+            elif (self.ITerm[i] > self.windup_guard):
+                self.ITerm[i] = self.windup_guard
+        
+        self.DTerm = 0.0
+        if delta_time > 0:
+            self.DTerm = delta_error / delta_time
+
+        self.last_time = self.current_time
+        self.last_error = error
+        return self.PTerm + (self.ki * self.ITerm) + (self.kd * self.DTerm)
+
+
 def run():
     env = gym.make("MaskPlacingJaco-v0")
     env.render()
@@ -129,11 +169,12 @@ def run():
     # FSM state variable
     currState = FIND_POSE
 
-    # list of action taken
-    actions_taken = []
-
     target_pos = env.target_pos
     target_orient = env.target_orient
+
+    startPos, startOrient, _, _, _, _ = p.getLinkState(env.robot, linkIndex=8)
+
+    pid_ctrl = PID(kp=5.0, ki=0.1, kd=0.1, q_dim=7)
 
     # Main loop
     while True:
@@ -148,11 +189,11 @@ def run():
             joint_positions, joint_velocities, joint_torques = env.get_motor_joint_states(env.robot)
             joint_positions = np.array(joint_positions)[:7]
             # Set joint action to be the error between current and target joint positions
-            kp = 3.0
+
             err = target_joint_positions - joint_positions
-            u = kp*err
+            curr_time = time.time()
+            u = pid_ctrl.update(err)
             observation, reward, done, info = env.step(u)
-            actions_taken.append(u)
             # p.stepSimulation()
             # joint_poses = p.calculateInverseKinematics(env.robot, 8, target_pos, target_orient)
             # target_joint_positions = joint_poses[:7]
@@ -173,11 +214,31 @@ def run():
             #                             velocityGains=np.ones(len(joint_poses)))
             # sleep(0.05)
 
-        # elif currState == MASK_OFF:
-        #     u = actions_taken.pop()
-        #     observation, reward, done, info = env.step(u)
-        #     if len(actions_taken) == 0:
-        #         currState = DONE
+        elif currState == MASK_OFF:
+            # u = actions_taken.pop()
+            # observation, reward, done, info = env.step(u)
+            # if len(actions_taken) == 0:
+            #     currState = DONE
+            p.stepSimulation()
+            joint_poses = p.calculateInverseKinematics(env.robot, 8, target_pos, target_orient)
+            target_joint_positions = joint_poses[:7]
+
+            joint_positions, joint_velocities, joint_torques = env.get_motor_joint_states(env.robot)
+            joint_positions = np.array(joint_positions)[:7]
+
+            distance = np.linalg.norm(target_joint_positions - joint_positions)
+            # force_applied = distance*0.25
+            force_applied = 1.0
+
+            p.setJointMotorControlArray(bodyIndex=env.robot,
+                                        jointIndices=list(range(1, 8)),
+                                        controlMode=p.POSITION_CONTROL,
+                                        targetPositions=joint_poses,
+                                        targetVelocities=np.zeros(len(joint_poses)),
+                                        forces=force_applied * np.ones(len(joint_poses)),
+                                        positionGains=0.03 * np.ones(len(joint_poses)),
+                                        velocityGains=np.ones(len(joint_poses)))
+            sleep(0.05)
         else:
             pass
         
@@ -191,14 +252,13 @@ def run():
             target_orient = env.target_orient
         elif bKey in keys and keys[bKey]&p.KEY_WAS_TRIGGERED: # Backward
             # currState = MASK_OFF
-            target_pos = [1, 1, 0]
-            target_orient = [-1.75, 0, -1.1, -0.5]
+            target_pos = startPos
+            target_orient = startOrient
 
         elif rKey in keys and keys[rKey]&p.KEY_WAS_TRIGGERED: # Reset Env
             env.reset()
             goal_pos = env.target_pos
             goal_orient = env.target_orient
-            actions_taken = []
             currState = FIND_POSE
     
     p.disconnect()
