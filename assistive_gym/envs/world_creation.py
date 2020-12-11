@@ -296,7 +296,7 @@ class WorldCreation:
             positions = [position, -position]
         elif self.robot_type == 'jaco':
             # indices_new = [9, 11, 13]
-            indices_new = [8,]
+            indices_new = [9,]
             # positions = [position, position, position]
             positions = [position, ]
 

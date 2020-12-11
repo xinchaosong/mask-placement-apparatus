@@ -414,7 +414,7 @@
     </inertial>
   </link>
   <joint name="j2s7s300_joint_end_effector" type="fixed">
-    <parent link="j2s7s300_mask"/>
+    <parent link="j2s7s300_mask_holder"/>
     <child link="j2s7s300_end_effector"/>
     <axis xyz="0 0 0"/>
     <origin rpy="3.14159265359 0 0" xyz="0 0 -0.165"/>
