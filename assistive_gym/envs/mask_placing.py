@@ -101,7 +101,7 @@ class MaskPlacingEnv(AssistiveEnv):
         #                      (23, self.np_random.uniform(np.deg2rad(-30), np.deg2rad(30)))]
         joints_positions += [(21, np.deg2rad(0)),
                              (22, np.deg2rad(0)),
-                             (23, np.deg2rad(0))]
+                             (23, np.deg2rad(-30))]
         self.human_controllable_joint_indices = [20, 21, 22, 23]
         self.world_creation.setup_human_joints(self.human, joints_positions, self.human_controllable_joint_indices if (
                 self.human_control or self.world_creation.human_impairment == 'tremor') else [],
@@ -134,7 +134,7 @@ class MaskPlacingEnv(AssistiveEnv):
                                      cameraTargetPosition=[-0.2, 0, 0.75], physicsClientId=self.id)
 
         # Initialize the starting location of the robot's end effector
-        gripper_target_pos = np.array([-0.15, -0.4, 1]) + self.np_random.uniform(-0.05, 0.05, size=3)
+        gripper_target_pos = np.array([-0.2, -0.4, 1])
 
         if self.robot_type == 'pr2':
             # Call self.position_robot_toc() to optimize the robot's base position and then position the end effector using IK.
@@ -150,7 +150,7 @@ class MaskPlacingEnv(AssistiveEnv):
             self.world_creation.set_gripper_open_position(self.robot, position=0.03, left=False, set_instantly=True)
         elif self.robot_type == 'jaco':
             # The Jaco is already attached to the wheelchair, so we just need to position the end effector using IK.
-            gripper_target_orient = p.getQuaternionFromEuler(np.array([np.pi / 2.0, 0, np.pi / 2.0]),
+            gripper_target_orient = p.getQuaternionFromEuler(np.array([-np.pi / 2.0, np.pi, np.pi / 2.0]),
                                                              physicsClientId=self.id)
             self.util.ik_random_restarts(self.robot, 8, gripper_target_pos, gripper_target_orient, self.world_creation,
                                          self.robot_right_arm_joint_indices, self.robot_lower_limits,

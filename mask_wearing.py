@@ -6,13 +6,15 @@ import utils
 from time import sleep
 import time
 
+end_effector_id = 9
+
 def raw_ctrl_loop(p, env, target_pos, target_orient):
     goal_pos = target_pos
     goal_orient = target_orient
     goal_orient_Euler = p.getEulerFromQuaternion(goal_orient)
     while True:
         p.stepSimulation()
-        joint_poses = p.calculateInverseKinematics(env.robot, 8, goal_pos, goal_orient)
+        joint_poses = p.calculateInverseKinematics(env.robot, end_effector_id, goal_pos, goal_orient)
         target_joint_positions = joint_poses[:7]
 
         joint_positions, joint_velocities, joint_torques = env.get_motor_joint_states(env.robot)
@@ -53,7 +55,7 @@ def assisted_ctrl_loop(p, env, target_pos, target_orient):
         env.render()
 
         # IK to get new joint positions (angles) for the robot
-        target_joint_positions = p.calculateInverseKinematics(env.robot, 8, goal_pos, goal_orient)
+        target_joint_positions = p.calculateInverseKinematics(env.robot, end_effector_id, goal_pos, goal_orient)
         target_joint_positions = target_joint_positions[:7]
 
         # Get the joint positions (angles) of the robot arm
@@ -160,6 +162,8 @@ def run():
     env.render()
     observation = env.reset()
     utils.print_joints(env, p)
+    p.addUserDebugLine(lineFromXYZ=[0.0, 0.0, 0.0], lineToXYZ=[0.0, 0.0, 2.0], lineColorRGB=[255,0,0])
+    p.addUserDebugLine(lineFromXYZ=[0.25, -0.5, 0.0], lineToXYZ=[0.25, -0.5, 0.75], lineColorRGB=[0,0,255])
 
     qKey = ord('q')
     rKey = ord('r')
@@ -172,9 +176,9 @@ def run():
     target_pos = env.target_pos
     target_orient = env.target_orient
 
-    startPos, startOrient, _, _, _, _ = p.getLinkState(env.robot, linkIndex=8)
+    startPos, startOrient, _, _, _, _ = p.getLinkState(env.robot, linkIndex=end_effector_id)
 
-    pid_ctrl = PID(kp=5.0, ki=0.1, kd=0.1, q_dim=7)
+    pid_ctrl = PID(kp=3.0, ki=0.0, kd=0.0, q_dim=7)
 
     # Main loop
     while True:
@@ -183,7 +187,7 @@ def run():
         elif currState == MASK_ON:
             env.render()
             # IK to get new joint positions (angles) for the robot
-            target_joint_positions = p.calculateInverseKinematics(env.robot, 8, target_pos, target_orient)
+            target_joint_positions = p.calculateInverseKinematics(env.robot, end_effector_id, target_pos, target_orient)
             target_joint_positions = target_joint_positions[:7]
             # Get the joint positions (angles) of the robot arm
             joint_positions, joint_velocities, joint_torques = env.get_motor_joint_states(env.robot)
@@ -195,7 +199,7 @@ def run():
             u = pid_ctrl.update(err)
             observation, reward, done, info = env.step(u)
             # p.stepSimulation()
-            # joint_poses = p.calculateInverseKinematics(env.robot, 8, target_pos, target_orient)
+            # joint_poses = p.calculateInverseKinematics(env.robot, end_effector_id, target_pos, target_orient)
             # target_joint_positions = joint_poses[:7]
 
             # joint_positions, joint_velocities, joint_torques = env.get_motor_joint_states(env.robot)
@@ -220,7 +224,7 @@ def run():
             # if len(actions_taken) == 0:
             #     currState = DONE
             p.stepSimulation()
-            joint_poses = p.calculateInverseKinematics(env.robot, 8, target_pos, target_orient)
+            joint_poses = p.calculateInverseKinematics(env.robot, end_effector_id, target_pos, target_orient)
             target_joint_positions = joint_poses[:7]
 
             joint_positions, joint_velocities, joint_torques = env.get_motor_joint_states(env.robot)
