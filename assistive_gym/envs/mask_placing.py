@@ -16,6 +16,21 @@ class MaskPlacingEnv(AssistiveEnv):
         self.head_orient_z = 0.0
         self.robot_base = [-0.35, -0.3, 0.3]
 
+        # Default camera position and field of view
+        camera_pos = [0.25, -0.5, 0.75]
+        target_pos = [0.0, 0.0, 1.25]
+        up_vector = [0.0, 0.0, 1.0]
+        self.viewMatrix = p.computeViewMatrix(cameraEyePosition=camera_pos,
+                                     cameraTargetPosition=target_pos,
+                                     cameraUpVector=up_vector)
+        self.camera_width = 640
+        self.camera_height = 480
+        fov = 30
+        aspect = self.camera_width / self.camera_height
+        near = 0.02
+        far = 1
+        self.projectionMatrix = p.computeProjectionMatrixFOV(fov, aspect, near, far)
+
     def set_head_orient(self, deg_x, deg_y, deg_z):
         self.head_orient_x = deg_x
         self.head_orient_y = deg_y
@@ -23,6 +38,22 @@ class MaskPlacingEnv(AssistiveEnv):
     
     def set_robot_base(self, robot_pos_array):
         self.robot_base = robot_pos_array
+
+    def get_camera_frame(self):
+        image_data = p.getCameraImage(height=self.camera_height,
+                                width=self.camera_width,
+                                viewMatrix=self.viewMatrix,
+                                projectionMatrix=self.projectionMatrix,
+                                shadow=True,
+                                renderer=p.ER_BULLET_HARDWARE_OPENGL)
+        return image_data[2]
+
+    def set_camera_position(self, camera_pos, target_pos):
+        print('set_camera_position')
+        up_vector = [0.0, 0.0, 1.0]
+        self.viewMatrix = p.computeViewMatrix(cameraEyePosition=camera_pos,
+                                     cameraTargetPosition=target_pos,
+                                     cameraUpVector=up_vector)
 
     def step(self, action):
         # Execute action

@@ -3,6 +3,7 @@ import pybullet as p
 import numpy as np
 from PIL import Image
 import utils
+from PID import PID
 from time import sleep
 import time
 import cv2
@@ -19,44 +20,20 @@ DONE = 3
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor('./shape_predictor_68_face_landmarks.dat')
 
-def getCameraFrame(p):
-    # Camera setup
-    camera_pos = [0.25, -0.5, 0.75]
-    target_pos = [0.0, 0.0, 1.25]
-    up_vector = [0.0, 0.0, 1.0]
-    viewMatrix = p.computeViewMatrix(cameraEyePosition=camera_pos,
-                                     cameraTargetPosition=target_pos,
-                                     cameraUpVector=up_vector)
-    width = 640
-    height = 480
-    fov = 60
-    aspect = width / height
-    near = 0.02
-    far = 1
-    projectionMatrix = p.computeProjectionMatrixFOV(fov, aspect, near, far)
-
-    image_data = p.getCameraImage(height=height,
-                                width=width,
-                                viewMatrix=viewMatrix,
-                                projectionMatrix=projectionMatrix,
-                                shadow=True,
-                                renderer=p.ER_BULLET_HARDWARE_OPENGL)
-    return image_data[2]
-
-def StartVideo():
-    video_capture = cv2.VideoCapture(0)
-    cv2.namedWindow("Window")
-    
+def StartVideo(env):
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor('./shape_predictor_68_face_landmarks.dat')
-    count = 0
     while True:
-        ret, frame = video_capture.read()
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        frame = env.get_camera_frame()
+        gray = cv2.cvtColor(frame, cv2.COLOR_RGBA2GRAY)
         
         ## Facial detection
         faces = detector(gray)
         #print(len(faces)) # =1
+        if len(faces) == 0:
+            print('No face found')
+            continue
+
         for face in faces:
             x1 = face.left()
             y1 = face.top()
@@ -73,8 +50,7 @@ def StartVideo():
                 x = landmarks.part(n).x
                 y = landmarks.part(n).y
                 cv2.circle(frame, (x,y), 3, (255, 0, 0), -1) #radius=3, fill the circle = -1
-            '''   
-        
+            '''
               
         ### Drawing a line from point 28 to 8.
         x28 = landmarks.part(28).x
@@ -128,49 +104,10 @@ def StartVideo():
         #This breaks on 'q' key
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-
-    video_capture.release()
+    
     cv2.destroyAllWindows()
     return math.floor(np.mean(allx)), math.floor(np.mean(ally))
 
-class PID:
-    def __init__(self, kp=3.0, ki=0.0001, kd=0.0001, q_dim=1, current_time=None):
-        self.kp = kp
-        self.ki = ki
-        self.kd = kd
-        self.current_time = current_time if current_time is not None else time.time()
-        self.last_time = self.current_time
-        self.q_dim = q_dim
-        self.initialize()
-
-    def initialize(self, current_time=None):
-        self.PTerm = np.zeros(self.q_dim).tolist()
-        self.ITerm = np.zeros(self.q_dim).tolist()
-        self.DTerm = np.zeros(self.q_dim).tolist()
-        self.last_error = np.zeros(self.q_dim).tolist()
-        self.int_error = np.zeros(self.q_dim).tolist()
-        self.windup_guard = 20.0
-
-    def update(self, error, current_time=None):
-        self.current_time = current_time if current_time is not None else time.time()
-        delta_time = self.current_time - self.last_time
-        delta_error = error - self.last_error
-
-        self.PTerm = self.kp * error
-        self.ITerm += error * delta_time
-        for i in range(self.q_dim):
-            if (self.ITerm[i] < -self.windup_guard):
-                self.ITerm[i] = -self.windup_guard
-            elif (self.ITerm[i] > self.windup_guard):
-                self.ITerm[i] = self.windup_guard
-        
-        self.DTerm = 0.0
-        if delta_time > 0:
-            self.DTerm = delta_error / delta_time
-
-        self.last_time = self.current_time
-        self.last_error = error
-        return self.PTerm + (self.ki * self.ITerm) + (self.kd * self.DTerm)
 
 def assisted_ctrl_loop(p, env, target_pos, target_orient, pid_ctrl):
     env.render()
@@ -214,10 +151,14 @@ def run():
     env = gym.make("MaskPlacingJaco-v0")
 
     # Set head orientation
-    env.set_head_orient(0.0, 0.0, 30.0)
+    env.set_head_orient(0.0, 0.0, 0.0)
     
     # Set robot base position (relative to wheelchair)
     env.set_robot_base([-0.35, -0.3, 0.3]) # x, y, z in meters
+
+    # Set camera position
+    # env.set_camera_position([0.25, -0.5, 0.75], [0.0, 0.0, 1.25])
+    env.set_camera_position([0.0, -0.5, 1.25], [0.0, 0.0, 1.25])
 
     env.render()
     observation = env.reset()
@@ -243,10 +184,10 @@ def run():
     # Main loop
     while True:
         if currState == FIND_POSE:
-            frame = getCameraFrame(p)
+            frame = env.get_camera_frame()
             img = Image.fromarray(frame, 'RGBA')
             img.save('head.png')
-            # x, y = StartVideo()
+            # x, y = StartVideo(env)
             # print(x, y)
             currState = MASK_ON
         elif currState == MASK_ON:
