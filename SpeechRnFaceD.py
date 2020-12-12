@@ -14,7 +14,7 @@ Created on Wed Dec  9 15:04:25 2020
 
 """
 
-import speech_recognition as sr
+# import speech_recognition as sr
 import numpy as np
 import cv2
 import dlib
@@ -27,7 +27,7 @@ def StartVideo():
     cv2.namedWindow("Window")
     
     detector = dlib.get_frontal_face_detector()
-    predictor = dlib.shape_predictor('C:/Users/Tejas/Downloads/MS/Sem4/Assistive Robotics/Final Project/shape_predictor_68_face_landmarks.dat')
+    predictor = dlib.shape_predictor('./shape_predictor_68_face_landmarks.dat')
     count = 0
     while True:
         ret, frame = video_capture.read()
@@ -119,21 +119,21 @@ print(x, y)
 
 
 
-r = sr.Recognizer()
-with sr.Microphone() as source:
-    print('Start Speaking....')
-    audio = r.listen(source, phrase_time_limit=3)
-    print("Recording Ended!")
+# r = sr.Recognizer()
+# with sr.Microphone() as source:
+#     print('Start Speaking....')
+#     audio = r.listen(source, phrase_time_limit=3)
+#     print("Recording Ended!")
     
-try:
-    text = r.recognize_google(audio)
-    print(text)
-except:
-    print("Could Not Understand the audio!, Retry again!")
+# try:
+#     text = r.recognize_google(audio)
+#     print(text)
+# except:
+#     print("Could Not Understand the audio!, Retry again!")
     
     
-if text == 'hi hello':
-    x, y = StartVideo()
+# if text == 'hi hello':
+#     x, y = StartVideo()
 
 
 
