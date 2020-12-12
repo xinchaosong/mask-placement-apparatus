@@ -212,6 +212,13 @@ def raw_ctrl_loop(p, env, target_pos, target_orient, reduce_force=True):
 
 def run():
     env = gym.make("MaskPlacingJaco-v0")
+
+    # Set head orientation
+    env.set_head_orient(0.0, 0.0, 30.0)
+    
+    # Set robot base position (relative to wheelchair)
+    env.set_robot_base([-0.35, -0.3, 0.3]) # x, y, z in meters
+
     env.render()
     observation = env.reset()
     utils.print_joints(env, p)
@@ -239,8 +246,9 @@ def run():
             frame = getCameraFrame(p)
             img = Image.fromarray(frame, 'RGBA')
             img.save('head.png')
-            x, y = StartVideo()
-            print(x, y)
+            # x, y = StartVideo()
+            # print(x, y)
+            currState = MASK_ON
         elif currState == MASK_ON:
             assisted_ctrl_loop(p, env, target_pos, target_orient, pid_ctrl)
             # raw_ctrl_loop(p, env, target_pos, target_orient, reduce_force=True)

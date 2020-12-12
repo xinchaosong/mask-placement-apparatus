@@ -11,6 +11,18 @@ class MaskPlacingEnv(AssistiveEnv):
                                              frame_skip=5, time_step=0.02, action_robot_len=7,
                                              action_human_len=(4 if human_control else 0), obs_robot_len=21,
                                              obs_human_len=(19 if human_control else 0))
+        self.head_orient_x = 0.0
+        self.head_orient_y = 0.0
+        self.head_orient_z = 0.0
+        self.robot_base = [-0.35, -0.3, 0.3]
+
+    def set_head_orient(self, deg_x, deg_y, deg_z):
+        self.head_orient_x = deg_x
+        self.head_orient_y = deg_y
+        self.head_orient_z = deg_z
+    
+    def set_robot_base(self, robot_pos_array):
+        self.robot_base = robot_pos_array
 
     def step(self, action):
         # Execute action
@@ -85,12 +97,12 @@ class MaskPlacingEnv(AssistiveEnv):
             # Attach the Jaco robot to the wheelchair
             wheelchair_pos, wheelchair_orient = p.getBasePositionAndOrientation(self.wheelchair,
                                                                                 physicsClientId=self.id)
-            p.resetBasePositionAndOrientation(self.robot, np.array(wheelchair_pos) + np.array([-0.35, -0.3, 0.3]),
-                                              p.getQuaternionFromEuler([0, 0, 0], physicsClientId=self.id),
-                                              physicsClientId=self.id)
-            # p.resetBasePositionAndOrientation(self.robot, np.array(wheelchair_pos) + np.array([-0.35, -0.3, 0.7]),
+            # p.resetBasePositionAndOrientation(self.robot, np.array(wheelchair_pos) + np.array([-0.35, -0.3, 0.3]),
             #                                   p.getQuaternionFromEuler([0, 0, 0], physicsClientId=self.id),
             #                                   physicsClientId=self.id)
+            p.resetBasePositionAndOrientation(self.robot, np.array(wheelchair_pos) + np.array(self.robot_base),
+                                              p.getQuaternionFromEuler([0, 0, 0], physicsClientId=self.id),
+                                              physicsClientId=self.id)
 
         # Configure the person
         joints_positions = [(6, np.deg2rad(-90)), (16, np.deg2rad(-90)), (28, np.deg2rad(-90)), (31, np.deg2rad(80)),
@@ -99,9 +111,9 @@ class MaskPlacingEnv(AssistiveEnv):
         # joints_positions += [(21, self.np_random.uniform(np.deg2rad(-30), np.deg2rad(30))),
         #                      (22, self.np_random.uniform(np.deg2rad(-30), np.deg2rad(30))),
         #                      (23, self.np_random.uniform(np.deg2rad(-30), np.deg2rad(30)))]
-        joints_positions += [(21, np.deg2rad(0)),
-                             (22, np.deg2rad(0)),
-                             (23, np.deg2rad(-30))]
+        joints_positions += [(21, np.deg2rad(self.head_orient_y)), # 21 = y
+                             (22, np.deg2rad(self.head_orient_x)), # 22 = x
+                             (23, np.deg2rad(self.head_orient_z))] # 23 = z
         self.human_controllable_joint_indices = [20, 21, 22, 23]
         self.world_creation.setup_human_joints(self.human, joints_positions, self.human_controllable_joint_indices if (
                 self.human_control or self.world_creation.human_impairment == 'tremor') else [],
