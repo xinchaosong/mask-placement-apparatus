@@ -151,7 +151,7 @@ def run():
     env = gym.make("MaskPlacingJaco-v0")
 
     # Set head orientation
-    env.set_head_orient(0.0, 0.0, 0.0)
+    env.set_head_orient(0.0, 0.0, -30.0)
     
     # Set robot base position (relative to wheelchair)
     env.set_robot_base([-0.35, -0.3, 0.3]) # x, y, z in meters
@@ -163,8 +163,8 @@ def run():
     env.render()
     observation = env.reset()
     utils.print_joints(env, p)
-    p.addUserDebugLine(lineFromXYZ=[0.0, 0.0, 0.0], lineToXYZ=[0.0, 0.0, 2.0], lineColorRGB=[255,0,0])
-    p.addUserDebugLine(lineFromXYZ=[0.25, -0.5, 0.0], lineToXYZ=[0.25, -0.5, 0.75], lineColorRGB=[0,0,255])
+    # p.addUserDebugLine(lineFromXYZ=[0.0, 0.0, 0.0], lineToXYZ=[0.0, 0.0, 2.0], lineColorRGB=[255,0,0])
+    # p.addUserDebugLine(lineFromXYZ=[0.25, -0.5, 0.0], lineToXYZ=[0.25, -0.5, 0.75], lineColorRGB=[0,0,255])
 
     qKey = ord('q')
     rKey = ord('r')
@@ -184,19 +184,20 @@ def run():
     # Main loop
     while True:
         if currState == FIND_POSE:
-            frame = env.get_camera_frame()
-            img = Image.fromarray(frame, 'RGBA')
-            img.save('head.png')
-            # x, y = StartVideo(env)
-            # print(x, y)
-            currState = MASK_ON
+            # frame = env.get_camera_frame()
+            # img = Image.fromarray(frame, 'RGBA')
+            # img.save('head.png')
+            # # x, y = StartVideo(env)
+            # # print(x, y)
+            # currState = MASK_ON
+            pass
         elif currState == MASK_ON:
             assisted_ctrl_loop(p, env, target_pos, target_orient, pid_ctrl)
             # raw_ctrl_loop(p, env, target_pos, target_orient, reduce_force=True)
 
         elif currState == MASK_OFF:
-            assisted_ctrl_loop(p, env, startPos, startOrient, pid_ctrl)
-            # raw_ctrl_loop(p, env, startPos, startOrient, reduce_force=False)
+            # assisted_ctrl_loop(p, env, startPos, startOrient, pid_ctrl)
+            raw_ctrl_loop(p, env, startPos, startOrient, reduce_force=False)
         else:
             pass
         
@@ -209,7 +210,10 @@ def run():
         elif bKey in keys and keys[bKey]&p.KEY_WAS_TRIGGERED: # Backward
             currState = MASK_OFF
         elif rKey in keys and keys[rKey]&p.KEY_WAS_TRIGGERED: # Reset Env
+            env.set_head_orient(0.0, 30.0, 0.0)
             env.reset()
+            target_pos = env.target_pos
+            target_orient = env.target_orient
             currState = FIND_POSE
     
     p.disconnect()
