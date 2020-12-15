@@ -265,6 +265,12 @@ class WorldCreation:
         # Initialize and position
         p.resetBasePositionAndOrientation(robot, [-2, -2, 0.975], [0, 0, 0, 1], physicsClientId=self.id)
 
+        # Install the camera
+        camera = p.loadURDF(os.path.join(self.directory, 'jaco', 'camera.urdf'),
+                           useFixedBase=True, basePosition=[0, 0, 0], flags=p.URDF_USE_SELF_COLLISION,
+                           physicsClientId=self.id)
+        p.resetBasePositionAndOrientation(camera, [0.3, -0.3, 0.225], [0, 0, 0.4, 1], physicsClientId=self.id)
+
         # Grab and enforce robot arm joint limits
         lower_limits, upper_limits = self.enforce_joint_limits(robot)
 
