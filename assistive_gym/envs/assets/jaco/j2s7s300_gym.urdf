@@ -393,6 +393,28 @@
     <origin rpy="0 0 0" xyz="0 0 0"/>
   </joint>
 
+<link name="j2s7s300_camera">
+    <visual>
+      <geometry>
+        <mesh filename="meshes/camera.STL"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="meshes/camera.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="j2s7s300_joint_9" type="fixed">
+    <parent link="j2s7s300_mask_holder"/>
+    <child link="j2s7s300_camera"/>
+    <axis xyz="0 0 0"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+  </joint>
+
   <link name="j2s7s300_end_effector">
     <visual>
       <geometry>
