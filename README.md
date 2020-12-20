@@ -1,4 +1,4 @@
-# Design of an Mask placement apparatus
+# Design of a Mask placement apparatus
 
 ## Introduction
 
