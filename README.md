@@ -12,6 +12,4 @@
 
 - Assistive Gym Wiki (Tutorial): [https://github.com/Healthcare-Robotics/assistive-gym/wiki](https://github.com/Healthcare-Robotics/assistive-gym/wiki)
 
-- EECE5552 Projct Google Drive: [https://drive.google.com/drive/folders/1ZP_8nTLMhddRgubxqoD0eJm7_buvbfqX](https://drive.google.com/drive/folders/1ZP_8nTLMhddRgubxqoD0eJm7_buvbfqX)
-
 ![](demo.png)
