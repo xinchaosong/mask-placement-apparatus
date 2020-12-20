@@ -1,3 +1,9 @@
+"""
+Created on November 19, 2020
+
+@author: Xinchao Song
+"""
+
 import os
 from gym import spaces
 import numpy as np
@@ -21,8 +27,8 @@ class MaskPlacingEnv(AssistiveEnv):
         target_pos = [0.0, 0.0, 1.25]
         up_vector = [0.0, 0.0, 1.0]
         self.viewMatrix = p.computeViewMatrix(cameraEyePosition=camera_pos,
-                                     cameraTargetPosition=target_pos,
-                                     cameraUpVector=up_vector)
+                                              cameraTargetPosition=target_pos,
+                                              cameraUpVector=up_vector)
         self.camera_width = 640
         self.camera_height = 480
         fov = 30
@@ -35,25 +41,25 @@ class MaskPlacingEnv(AssistiveEnv):
         self.head_orient_x = deg_x
         self.head_orient_y = deg_y
         self.head_orient_z = deg_z
-    
+
     def set_robot_base(self, robot_pos_array):
         self.robot_base = robot_pos_array
 
     def get_camera_frame(self):
         image_data = p.getCameraImage(height=self.camera_height,
-                                width=self.camera_width,
-                                viewMatrix=self.viewMatrix,
-                                projectionMatrix=self.projectionMatrix,
-                                shadow=True,
-                                renderer=p.ER_BULLET_HARDWARE_OPENGL)
+                                      width=self.camera_width,
+                                      viewMatrix=self.viewMatrix,
+                                      projectionMatrix=self.projectionMatrix,
+                                      shadow=True,
+                                      renderer=p.ER_BULLET_HARDWARE_OPENGL)
         return image_data[2]
 
     def set_camera_position(self, camera_pos, target_pos):
         print('set_camera_position')
         up_vector = [0.0, 0.0, 1.0]
         self.viewMatrix = p.computeViewMatrix(cameraEyePosition=camera_pos,
-                                     cameraTargetPosition=target_pos,
-                                     cameraUpVector=up_vector)
+                                              cameraTargetPosition=target_pos,
+                                              cameraUpVector=up_vector)
 
     def step(self, action):
         # Execute action
@@ -66,7 +72,8 @@ class MaskPlacingEnv(AssistiveEnv):
             robot_force_on_human += c[9]
 
         # Get the Euclidean distance and orientation between the robot's end effector and the person's mouth
-        linkState = p.getLinkState(self.robot, 54 if self.robot_type == 'pr2' else 8, computeForwardKinematics=True, physicsClientId=self.id)
+        linkState = p.getLinkState(self.robot, 54 if self.robot_type == 'pr2' else 9, computeForwardKinematics=True,
+                                   physicsClientId=self.id)
         gripper_pos = np.array(linkState[0])
         gripper_orient = np.array(p.getEulerFromQuaternion(linkState[1]))
 
@@ -75,7 +82,7 @@ class MaskPlacingEnv(AssistiveEnv):
         reward_orient_mouth = -np.linalg.norm(gripper_orient - target_orient)
         # Get end effector velocity
         end_effector_velocity = np.linalg.norm(
-            p.getLinkState(self.robot, 76 if self.robot_type == 'pr2' else 8, computeForwardKinematics=True,
+            p.getLinkState(self.robot, 76 if self.robot_type == 'pr2' else 9, computeForwardKinematics=True,
                            computeLinkVelocity=True, physicsClientId=self.id)[6])
 
         # Get human preferences
@@ -83,7 +90,7 @@ class MaskPlacingEnv(AssistiveEnv):
                                                    total_force_on_human=robot_force_on_human)
         # Get observations and reward
         obs = self._get_obs([], [robot_force_on_human])
-        reward = self.config('distance_weight') * (reward_distance_mouth+reward_orient_mouth) + preferences_score
+        reward = self.config('distance_weight') * (reward_distance_mouth + reward_orient_mouth) + preferences_score
         info = {'total_force_on_human': robot_force_on_human,
                 'task_success': int(reward_distance_mouth <= self.config('task_success_threshold')),
                 'action_robot_len': self.action_robot_len, 'action_human_len': self.action_human_len,
@@ -98,7 +105,7 @@ class MaskPlacingEnv(AssistiveEnv):
         robot_right_joint_positions = np.array([x[0] for x in p.getJointStates(self.robot,
                                                                                jointIndices=self.robot_right_arm_joint_indices,
                                                                                physicsClientId=self.id)])
-        gripper_pos, gripper_orient = p.getLinkState(self.robot, 54 if self.robot_type == 'pr2' else 8,
+        gripper_pos, gripper_orient = p.getLinkState(self.robot, 54 if self.robot_type == 'pr2' else 9,
                                                      computeForwardKinematics=True, physicsClientId=self.id)[:2]
         if self.human_control:
             human_pos = np.array(p.getBasePositionAndOrientation(self.human, physicsClientId=self.id)[0])
@@ -142,9 +149,9 @@ class MaskPlacingEnv(AssistiveEnv):
         # joints_positions += [(21, self.np_random.uniform(np.deg2rad(-30), np.deg2rad(30))),
         #                      (22, self.np_random.uniform(np.deg2rad(-30), np.deg2rad(30))),
         #                      (23, self.np_random.uniform(np.deg2rad(-30), np.deg2rad(30)))]
-        joints_positions += [(21, np.deg2rad(self.head_orient_y)), # 21 = y
-                             (22, np.deg2rad(self.head_orient_x)), # 22 = x
-                             (23, np.deg2rad(self.head_orient_z))] # 23 = z
+        joints_positions += [(21, np.deg2rad(self.head_orient_y)),  # 21 = y
+                             (22, np.deg2rad(self.head_orient_x)),  # 22 = x
+                             (23, np.deg2rad(self.head_orient_z))]  # 23 = z
         self.human_controllable_joint_indices = [20, 21, 22, 23]
         self.world_creation.setup_human_joints(self.human, joints_positions, self.human_controllable_joint_indices if (
                 self.human_control or self.world_creation.human_impairment == 'tremor') else [],
